@@ -448,6 +448,79 @@ Perf notes:
 
 <script>
 /* ---- Storage, CRUD, and Routing continued ---- */
+const defaultRoute = '#/dashboard';
+const mainEl = document.getElementById('main');
+const tabSections = Array.from(document.querySelectorAll('section.tab'));
+const navButtons = Array.from(document.querySelectorAll('button.tab-btn'));
+let currentRoute = '';
+
+function normalizeHash(hash) {
+  if (!hash || hash === '#' || hash === '#/') {
+    return defaultRoute;
+  }
+  if (hash.startsWith('#/')) {
+    return hash;
+  }
+  if (hash.startsWith('#')) {
+    return '#/' + hash.slice(1).replace(/^\/+/g, '');
+  }
+  return '#/' + String(hash).replace(/^#?\/+/g, '');
+}
+
+function getRouteId(hash) {
+  const normalized = normalizeHash(hash);
+  return normalized.slice(2) || 'dashboard';
+}
+
+function applyRoute(hash) {
+  const normalizedHash = normalizeHash(hash);
+  if (normalizedHash === currentRoute) {
+    return;
+  }
+  currentRoute = normalizedHash;
+  const targetId = getRouteId(normalizedHash);
+  const targetSection = tabSections.find(section => section.id === targetId) || tabSections[0];
+
+  tabSections.forEach(section => {
+    const isActive = section === targetSection;
+    section.style.display = isActive ? '' : 'none';
+    section.toggleAttribute('hidden', !isActive);
+  });
+
+  navButtons.forEach(button => {
+    const buttonRouteId = getRouteId(button.dataset.route || '');
+    if (buttonRouteId === targetSection.id) {
+      button.setAttribute('aria-current', 'page');
+    } else {
+      button.removeAttribute('aria-current');
+    }
+  });
+
+  if (mainEl && typeof mainEl.focus === 'function') {
+    requestAnimationFrame(() => {
+      try {
+        mainEl.focus({ preventScroll: true });
+      } catch (err) {
+        mainEl.focus();
+      }
+    });
+  }
+}
+
+navButtons.forEach(button => {
+  button.addEventListener('click', () => {
+    const targetHash = normalizeHash(button.dataset.route || defaultRoute);
+    if (window.location.hash !== targetHash) {
+      window.location.hash = targetHash;
+    } else {
+      applyRoute(targetHash);
+    }
+  });
+});
+
+window.addEventListener('hashchange', () => applyRoute(window.location.hash));
+applyRoute(window.location.hash || defaultRoute);
+
 const vendors = [];
 const budgets = [];
 
